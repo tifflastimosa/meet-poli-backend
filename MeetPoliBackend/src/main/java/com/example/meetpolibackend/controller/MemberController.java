@@ -24,28 +24,23 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class MemberController {
 
   private final HttpClient client = HttpClient.newHttpClient();
+  private final ObjectMapper mapper = new ObjectMapper();
+  private final String apiKey = "X-API-Key";
+  private final String apiKeyValue = "mkXnRMzkbiLZ9vc2ocNUqYGd0FuHzroQI1vWxNvr";
 
   // First API call to get members of a specific chamber and state
   @GetMapping(value = "/{chamber}/{state}/current", produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public Optional<JsonNode> getMemberByChamberAndState(@PathVariable("chamber") String chamber,
       @PathVariable("state") String state) throws IOException, InterruptedException {
-    ObjectMapper mapper = new ObjectMapper();
     String url =
-        "https://api.propublica.org/congress/v1/members/" + chamber + "/" + state + "/current.json";
-    HttpRequest req = HttpRequest.newBuilder()
-        .uri(URI.create(url))
-        .setHeader("X-API-Key", "mkXnRMzkbiLZ9vc2ocNUqYGd0FuHzroQI1vWxNvr")
-        .setHeader("Accept", "application/json")
-        .build();
-    HttpResponse<String> res = client.send(req, BodyHandlers.ofString());
+        String.format("https://api.propublica.org/congress/v1/members/%s/%s/current.json", chamber,
+            state);
+    Optional<JsonNode> result = this.apiCallHelper(url);
 
-    if (res.statusCode() != HttpServletResponse.SC_OK) {
-      return Optional.empty();
-    }
-    JsonNode jsonNode = mapper.readTree(res.body());
-    JsonNode array = jsonNode.get("results");
-    return Optional.ofNullable(mapper.createObjectNode().set("members", array));
+    if (result.isEmpty()) return result;
+
+    return Optional.ofNullable(mapper.createObjectNode().set("members", result.get()));
   }
 
   // Second API call to get a specific member
@@ -53,22 +48,12 @@ public class MemberController {
   @ResponseBody
   public Optional<JsonNode> getMemberById(@PathVariable("id") String id)
       throws IOException, InterruptedException {
-    ObjectMapper mapper = new ObjectMapper();
-    String url = "https://api.propublica.org/congress/v1/members/" + id + ".json";
-    HttpRequest req = HttpRequest.newBuilder()
-        .uri(URI.create(url))
-        .setHeader("X-API-Key", "mkXnRMzkbiLZ9vc2ocNUqYGd0FuHzroQI1vWxNvr")
-        .setHeader("Accept", "application/json")
-        .build();
-    HttpResponse<String> res = client.send(req, BodyHandlers.ofString());
+    String url = String.format("https://api.propublica.org/congress/v1/members/%s.json", id);
+    Optional<JsonNode> result = this.apiCallHelper(url);
 
-    if (res.statusCode() != HttpServletResponse.SC_OK) {
-      return Optional.empty();
-    }
+    if (result.isEmpty()) return result;
 
-    JsonNode jsonNode = mapper.readTree(res.body());
-    JsonNode array = jsonNode.get("results");
-    return Optional.ofNullable(mapper.createObjectNode().set("member", array));
+    return Optional.ofNullable(mapper.createObjectNode().set("member", result.get()));
   }
 
   // Third API call to get list of bills voted on
@@ -76,11 +61,20 @@ public class MemberController {
   @ResponseBody
   public Optional<JsonNode> getMembersVote(@PathVariable("member-id") String memberID)
       throws IOException, InterruptedException {
-    ObjectMapper mapper = new ObjectMapper();
-    String url = "https://api.propublica.org/congress/v1/members/" + memberID + "/votes.json";
+    String url = String.format("https://api.propublica.org/congress/v1/members/%s/votes.json",
+        memberID);
+    Optional<JsonNode> result = this.apiCallHelper(url);
+
+    if (result.isEmpty()) return result;
+
+    return Optional.ofNullable(
+        mapper.createObjectNode().set("votes", result.get().get(0).get("votes")));
+  }
+
+  private Optional<JsonNode> apiCallHelper(String url) throws IOException, InterruptedException {
     HttpRequest req = HttpRequest.newBuilder()
         .uri(URI.create(url))
-        .setHeader("X-API-Key", "mkXnRMzkbiLZ9vc2ocNUqYGd0FuHzroQI1vWxNvr")
+        .setHeader(apiKey, apiKeyValue)
         .setHeader("Accept", "application/json")
         .build();
     HttpResponse<String> res = client.send(req, BodyHandlers.ofString());
@@ -89,8 +83,7 @@ public class MemberController {
       return Optional.empty();
     }
 
-    JsonNode jsonNode = mapper.readTree(res.body());
-    JsonNode array = jsonNode.get("results").get(0).get("votes");
-    return Optional.ofNullable(mapper.createObjectNode().set("votes", array));
+    JsonNode jsonNode = mapper.readTree(res.body()).get("results");
+    return Optional.ofNullable((jsonNode));
   }
 }
