@@ -16,9 +16,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
+@RequestMapping("members")
 public class MemberController {
 
   private final HttpClient client = HttpClient.newHttpClient();
@@ -47,7 +49,7 @@ public class MemberController {
   }
 
   // Second API call to get a specific member
-  @GetMapping(value = "/members/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+  @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public Optional<JsonNode> getMemberById(@PathVariable("id") String id)
       throws IOException, InterruptedException {
