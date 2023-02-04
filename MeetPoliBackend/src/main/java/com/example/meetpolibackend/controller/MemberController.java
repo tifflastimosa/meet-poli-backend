@@ -47,13 +47,12 @@ public class MemberController {
 
   // Second API call to get a specific member
   @GetMapping("/members/{id}")
-  @ResponseBody
-  public Integer getMemberById(@PathVariable String id) {
+  public ResponseEntity<Integer> getMemberById(@PathVariable String id) {
     try {
-      return Integer.parseInt(id);
+      return new ResponseEntity<>(Integer.parseInt(id), HttpStatus.OK);
     } catch (NumberFormatException nfe) {
       System.out.println(id + " is not a valid member id");
-      throw nfe;
+      return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
     }
   }
 
