@@ -20,8 +20,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
+@RequestMapping("timeline")
 public class TweetController {
 
   private final HttpClient client = HttpClient.newHttpClient();
@@ -46,7 +48,7 @@ public class TweetController {
     return Optional.of(json.get("data").get("id").asText());
   }
 
-  @GetMapping(value = "/timeline/{handle}", produces = MediaType.APPLICATION_JSON_VALUE)
+  @GetMapping(value = "{handle}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<JsonNode> getMemberTimeline(@PathVariable String handle)
     throws IOException, InterruptedException {
     Optional<String> userId = getUserIdByUsername(handle);
