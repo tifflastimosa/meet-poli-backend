@@ -10,9 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,7 +38,7 @@ public class MemberController {
 
     if (result.isEmpty()) return result;
 
-    return Optional.ofNullable(mapper.createObjectNode().set("members", result.get()));
+    return Optional.ofNullable(mapper.createObjectNode().set("members", result.get().get(0)));
   }
 
   // Second API call to get a specific member
@@ -53,7 +51,7 @@ public class MemberController {
 
     if (result.isEmpty()) return result;
 
-    return Optional.ofNullable(mapper.createObjectNode().set("member", result.get()));
+    return Optional.ofNullable(mapper.createObjectNode().set("member", result.get().get(0)));
   }
 
   // Third API call to get list of bills voted on
@@ -68,7 +66,7 @@ public class MemberController {
     if (result.isEmpty()) return result;
 
     return Optional.ofNullable(
-        mapper.createObjectNode().set("votes", result.get().get(0).get("votes")));
+        mapper.createObjectNode().set("votes", result.get().get(0).get("votes").get(0)));
   }
 
   private Optional<JsonNode> apiCallHelper(String url) throws IOException, InterruptedException {
