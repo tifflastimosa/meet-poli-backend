@@ -1,8 +1,11 @@
 package com.example.meetpolibackend.controller;
 
+import com.example.meetpolibackend.model.Author;
+import com.example.meetpolibackend.model.Tweet;
 import com.example.meetpolibackend.util.PropertiesCache;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
@@ -10,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +25,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class TweetController {
 
   private final HttpClient client = HttpClient.newHttpClient();
+  private final ObjectMapper om = new ObjectMapper();
 
   public Optional<String> getUserIdByUsername(String username)
     throws IOException, InterruptedException {
-    ObjectMapper om = new ObjectMapper();
     HttpRequest req = HttpRequest.newBuilder()
       .uri(URI.create(String.format("https://api.twitter.com/2/users/by/username/%s", username)))
       .setHeader("Authorization",
@@ -43,12 +47,13 @@ public class TweetController {
   }
 
   @GetMapping(value = "/timeline/{handle}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<String> getMemberTimeline(@PathVariable String handle)
+  public ResponseEntity<JsonNode> getMemberTimeline(@PathVariable String handle)
     throws IOException, InterruptedException {
     Optional<String> userId = getUserIdByUsername(handle);
 
     if (userId.isEmpty()) {
-      return ResponseEntity.badRequest().body(String.format("Handle: %s is invalid", handle));
+      return ResponseEntity.badRequest()
+        .body(om.createObjectNode().put("error", String.format("Handle: %s is invalid", handle)));
     }
 
     HttpRequest req = HttpRequest.newBuilder()
@@ -65,12 +70,21 @@ public class TweetController {
 
     if (res.statusCode() != HttpServletResponse.SC_OK) {
       return ResponseEntity.badRequest()
-        .body(String.format("Could not retrieve timeline for %s", handle));
+        .body(om.createObjectNode()
+          .put("error", String.format("Could not retrieve timeline for %s", handle)));
     }
 
-    ObjectMapper om = new ObjectMapper();
-    JsonNode json = om.readTree(res.body());
+    JsonNode root = om.readTree(res.body());
+    JsonNode tweetsNode = root.path("data");
+    JsonNode authorNode = root.path("includes").path("users").path(0);
 
-    return ResponseEntity.ok(json.toPrettyString());
+    List<Tweet> tweets = om.readerForListOf(Tweet.class).readValue(tweetsNode);
+    Author author = om.readerFor(Author.class).readValue(authorNode);
+
+    ObjectNode result = om.createObjectNode();
+    tweets.forEach(tweet -> result.withArray("tweets").addPOJO(tweet));
+    result.putPOJO("author", author);
+
+    return ResponseEntity.ok(result);
   }
 }
